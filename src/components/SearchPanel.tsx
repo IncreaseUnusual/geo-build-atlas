@@ -144,6 +144,25 @@ export default function SearchPanel({ onFiltersChange, activeFilters }: SearchPa
               <SelectItem value="active">Active</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>
               <SelectItem value="suspended">Suspended</SelectItem>
+              <SelectItem value="delayed">Delayed</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-cyber-secondary flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            Environmental Impact
+          </label>
+          <Select onValueChange={(value) => handleFilterChange('environmentalImpact', value)}>
+            <SelectTrigger className="bg-input/50 border-cyber-primary/30">
+              <SelectValue placeholder="All impact levels" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All impact levels</SelectItem>
+              <SelectItem value="low">Low Impact</SelectItem>
+              <SelectItem value="medium">Medium Impact</SelectItem>
+              <SelectItem value="high">High Impact</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -181,16 +200,26 @@ export default function SearchPanel({ onFiltersChange, activeFilters }: SearchPa
       <div className="pt-4 border-t border-cyber-primary/20">
         <div className="grid grid-cols-3 gap-4 text-center">
           <div>
-            <div className="text-2xl font-bold text-cyber-primary">247</div>
+            <div className="text-2xl font-bold text-cyber-primary">10</div>
             <div className="text-xs text-muted-foreground">Total Projects</div>
           </div>
           <div>
-            <div className="text-2xl font-bold text-cyber-secondary">42</div>
+            <div className="text-2xl font-bold text-cyber-secondary">7</div>
             <div className="text-xs text-muted-foreground">Active Sites</div>
           </div>
           <div>
-            <div className="text-2xl font-bold text-cyber-accent">15</div>
-            <div className="text-xs text-muted-foreground">Regions</div>
+            <div className="text-2xl font-bold text-cyber-accent">8</div>
+            <div className="text-xs text-muted-foreground">Countries</div>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4 mt-4 text-center">
+          <div>
+            <div className="text-lg font-bold text-cyber-warning">$1.3B</div>
+            <div className="text-xs text-muted-foreground">Total Investment</div>
+          </div>
+          <div>
+            <div className="text-lg font-bold text-cyber-success">2.1K</div>
+            <div className="text-xs text-muted-foreground">Total Workforce</div>
           </div>
         </div>
       </div>

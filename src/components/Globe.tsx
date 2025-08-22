@@ -1,8 +1,9 @@
 import React, { useRef, useMemo } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useLoader } from '@react-three/fiber';
 import { OrbitControls, Sphere, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { ConstructionFirm } from '../types/construction';
+import earthTexture from '../assets/earth-texture.jpg';
 
 interface GlobeProps {
   constructionData: ConstructionFirm[];
@@ -12,49 +13,21 @@ interface GlobeProps {
 
 function Earth() {
   const earthRef = useRef<THREE.Mesh>(null);
+  const texture = useLoader(THREE.TextureLoader, earthTexture);
   
   useFrame((state) => {
     if (earthRef.current) {
-      earthRef.current.rotation.y += 0.002;
+      earthRef.current.rotation.y += 0.001;
     }
   });
 
-  const earthTexture = useMemo(() => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 1024;
-    canvas.height = 512;
-    const ctx = canvas.getContext('2d')!;
-    
-    // Create a simple earth-like texture
-    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    gradient.addColorStop(0, '#001122');
-    gradient.addColorStop(0.3, '#003366');
-    gradient.addColorStop(0.7, '#004488');
-    gradient.addColorStop(1, '#0066aa');
-    
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // Add some land masses
-    ctx.fillStyle = '#0a3d2e';
-    for (let i = 0; i < 50; i++) {
-      ctx.beginPath();
-      ctx.arc(
-        Math.random() * canvas.width,
-        Math.random() * canvas.height,
-        Math.random() * 30 + 10,
-        0,
-        Math.PI * 2
-      );
-      ctx.fill();
-    }
-    
-    return new THREE.CanvasTexture(canvas);
-  }, []);
-
   return (
     <Sphere ref={earthRef} args={[2, 64, 64]}>
-      <meshStandardMaterial map={earthTexture} />
+      <meshStandardMaterial 
+        map={texture} 
+        roughness={0.8}
+        metalness={0.1}
+      />
     </Sphere>
   );
 }
@@ -74,7 +47,7 @@ function ConstructionMarker({
   const position = useMemo(() => {
     const lat = (firm.coordinates[1] * Math.PI) / 180;
     const lng = (firm.coordinates[0] * Math.PI) / 180;
-    const radius = 2.1;
+    const radius = 2.05;
     
     const x = radius * Math.cos(lat) * Math.cos(lng);
     const y = radius * Math.sin(lat);
@@ -83,9 +56,35 @@ function ConstructionMarker({
     return [x, y, z] as [number, number, number];
   }, [firm.coordinates]);
 
+  const getMarkerColor = () => {
+    if (highlighted) return '#00ffff';
+    
+    switch (firm.status) {
+      case 'active': return '#00ff00';
+      case 'planning': return '#ffff00';
+      case 'completed': return '#0066ff';
+      case 'suspended': return '#ff0000';
+      case 'delayed': return '#ff8800';
+      default: return '#ff6600';
+    }
+  };
+
+  const getEmissiveColor = () => {
+    if (highlighted) return '#004444';
+    
+    switch (firm.status) {
+      case 'active': return '#002200';
+      case 'planning': return '#444400';
+      case 'completed': return '#001144';
+      case 'suspended': return '#440000';
+      case 'delayed': return '#442200';
+      default: return '#442200';
+    }
+  };
+
   useFrame((state) => {
     if (markerRef.current && highlighted) {
-      markerRef.current.scale.setScalar(1 + Math.sin(state.clock.elapsedTime * 3) * 0.2);
+      markerRef.current.scale.setScalar(1 + Math.sin(state.clock.elapsedTime * 4) * 0.3);
     } else if (markerRef.current) {
       markerRef.current.scale.setScalar(1);
     }
@@ -94,19 +93,30 @@ function ConstructionMarker({
   return (
     <group position={position}>
       <mesh ref={markerRef} onClick={onClick}>
-        <sphereGeometry args={[0.02, 8, 8]} />
+        <sphereGeometry args={[0.025, 8, 8]} />
         <meshStandardMaterial 
-          color={highlighted ? '#00ffff' : '#ff6600'} 
-          emissive={highlighted ? '#004444' : '#442200'} 
+          color={getMarkerColor()} 
+          emissive={getEmissiveColor()}
+          emissiveIntensity={highlighted ? 0.5 : 0.3}
         />
       </mesh>
       {highlighted && (
-        <Html distanceFactor={10}>
-          <div className="bg-card border border-cyber-primary rounded px-2 py-1 text-xs text-cyber-primary min-w-[200px]">
-            <div className="font-bold">{firm.name}</div>
-            <div>Client: {firm.client}</div>
-            <div>Region: {firm.region}</div>
-            <div>Status: {firm.status}</div>
+        <Html distanceFactor={8}>
+          <div className="bg-card/95 border border-cyber-primary rounded-lg px-3 py-2 text-xs text-cyber-primary min-w-[250px] backdrop-blur-sm">
+            <div className="font-bold text-sm mb-1">{firm.name}</div>
+            <div className="space-y-1 text-xs">
+              <div><span className="text-cyber-secondary">Client:</span> {firm.client}</div>
+              <div><span className="text-cyber-secondary">Location:</span> {firm.city}, {firm.country}</div>
+              <div><span className="text-cyber-secondary">Type:</span> {firm.projectType}</div>
+              <div><span className="text-cyber-secondary">Status:</span> <span className={`font-medium ${
+                firm.status === 'active' ? 'text-green-400' :
+                firm.status === 'planning' ? 'text-yellow-400' :
+                firm.status === 'completed' ? 'text-blue-400' :
+                firm.status === 'suspended' ? 'text-red-400' :
+                'text-orange-400'
+              }`}>{firm.status.toUpperCase()}</span></div>
+              <div><span className="text-cyber-secondary">Budget:</span> ${(firm.budget / 1000000).toFixed(0)}M</div>
+            </div>
           </div>
         </Html>
       )}
@@ -118,9 +128,10 @@ export default function Globe({ constructionData, highlightedFirms, onFirmClick 
   return (
     <div className="w-full h-full">
       <Canvas camera={{ position: [0, 0, 6], fov: 45 }}>
-        <ambientLight intensity={0.2} />
-        <pointLight position={[10, 10, 10]} intensity={0.8} />
-        <pointLight position={[-10, -10, -10]} intensity={0.3} color="#0099ff" />
+        <ambientLight intensity={0.3} />
+        <pointLight position={[10, 10, 10]} intensity={1.2} color="#ffffff" />
+        <pointLight position={[-10, -10, -10]} intensity={0.4} color="#0099ff" />
+        <pointLight position={[0, 0, 15]} intensity={0.6} color="#ffffff" />
         
         <Earth />
         
@@ -138,7 +149,9 @@ export default function Globe({ constructionData, highlightedFirms, onFirmClick 
           enableZoom={true}
           enableRotate={true}
           minDistance={3}
-          maxDistance={12}
+          maxDistance={15}
+          autoRotate={false}
+          autoRotateSpeed={0.5}
         />
       </Canvas>
     </div>
